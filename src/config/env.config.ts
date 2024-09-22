@@ -1,20 +1,16 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyC_OOaVflpegp2W85325vyIFqZUVHo0wm0",
-  authDomain: "survey-app-hybrid.firebaseapp.com",
-  projectId: "survey-app-hybrid",
-  storageBucket: "survey-app-hybrid.appspot.com",
-  messagingSenderId: "866415826823",
-  appId: "1:866415826823:web:462779add79085f541a522",
-  measurementId: "G-T7S9CKNJ9B"
-};
+import { config } from 'dotenv';
 
-interface IEnvironment {
-  production: boolean;
-  api: {
-    url: string;
-  };
-  firebase: typeof firebaseConfig;
-}
+config();
+
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+};
 
 export const environment = {
   production: false,
