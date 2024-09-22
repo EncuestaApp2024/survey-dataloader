@@ -11,10 +11,58 @@ const availablesDirs = [
   "tingo",
 ];
 
-const subDir = availablesDirs[4];
-const csvDir = path.join(__dirname, `data/${subDir}`);
+for (let i = 0; i < availablesDirs.length; i++) {
+  const subDir = availablesDirs[i];
 
-type jsonData = { [key: string]: string | number | boolean | jsonData };
+  const csvDir = path.join(__dirname, `data/${subDir}`);
+
+  type jsonData = { [key: string]: string | number | boolean | jsonData };
+
+  fs.readdir(csvDir, (err, files) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    files.forEach(async (file) => {
+      const filePath = path.join(csvDir, file);
+      let fileName = path.basename(file, ".csv");
+      fileName = cleanSpecialChars(fileName);
+      const jsonDataSet = await csv().fromFile(filePath);
+      let foundDocuments = 0;
+
+      jsonDataSet.forEach(async (survey: any) => {
+        let ID = undefined;
+        const DNI = survey["dni"];
+        delete survey["apellido paterno"];
+        delete survey["apellido materno"];
+        delete survey["nombre"];
+        delete survey["n°"];
+
+        let addDataToSurvey: jsonData = {};
+        addDataToSurvey[fileName] = survey;
+
+        try {
+          const surveysCloud = await firestoreService.get("surveys", {
+            "identity.dni": DNI,
+            // "isDeleted": true,
+          });
+          if (surveysCloud.length === 0) return;
+
+          let docCloud = surveysCloud[0];
+          ID = docCloud["id"];
+
+          firestoreService.patch("surveys", ID, addDataToSurvey);
+          foundDocuments++;
+        } catch (error) {
+          console.error("ERROR", error);
+        }
+
+        console.log(fileName, foundDocuments, "loaded");
+      });
+    });
+  });
+}
 
 const cleanSpecialChars = (str: string) => {
   // camel case
@@ -28,50 +76,3 @@ const cleanSpecialChars = (str: string) => {
   str = str.replace(/\s/g, "");
   return str;
 };
-
-fs.readdir(csvDir, (err, files) => {
-  if (err) {
-    console.error(err);
-    return;
-  }
-
-  files.forEach(async (file) => {
-    const filePath = path.join(csvDir, file);
-    let fileName = path.basename(file, ".csv");
-    fileName = cleanSpecialChars(fileName);
-    const jsonDataSet = await csv().fromFile(filePath);
-    // firestore.collection(collection).doc(file).set({ data: json });
-    let foundDocuments = 0;
-
-    jsonDataSet.forEach(async (survey: any) => {
-      let ID = undefined;
-      const DNI = survey["dni"];
-      delete survey["apellido paterno"];
-      delete survey["apellido materno"];
-      delete survey["nombre"];
-      delete survey["n°"];
-      delete survey["dni"];
-
-      let addDataToSurvey: jsonData = {};
-      addDataToSurvey[fileName] = survey;
-
-      try {
-        const surveysCloud = await firestoreService.get("surveys", {
-          "identity.dni": DNI,
-          // "isDeleted": true,
-        });
-        if (surveysCloud.length === 0) return;
-
-        let docCloud = surveysCloud[0];
-        ID = docCloud["id"];
-
-        firestoreService.patch("surveys", ID, addDataToSurvey);
-        foundDocuments++;
-      } catch (error) {
-        console.error("ERROR", error);
-      }
-
-      console.log(fileName, foundDocuments, "loaded");
-    });
-  });
-});
